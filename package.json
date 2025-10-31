@@ -18,8 +18,14 @@
 	"engines": {
 		"bun": ">=1.2.0"
 	},
+	"scripts": {
+		"m2-to-gltf": "bun scripts/m2-to-gltf.js",
+		"m2-to-gltf:help": "bun scripts/m2-to-gltf.js --help",
+		"m2-to-gltf:example": "bun scripts/example.js"
+	},
 	"dependencies": {
 		"adm-zip": "git+https://github.com/cthackers/adm-zip.git#ff17ae85000b62b9d159e2520564902724d26c17",
+		"minimist": "^1.2.8",
 		"rcedit": "^2.0.0",
 		"three": "^0.179.1",
 		"vue": "^3.5.21",

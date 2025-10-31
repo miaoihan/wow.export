@@ -1,0 +1,323 @@
+{
+	"asset": {
+		"version": "2.0",
+		"generator": "wow.export v0.2.4 cli [m2-to-gltf-script]"
+	},
+	"nodes": [
+		{
+			"name": "5408474",
+			"children": [
+				1,
+				3,
+				4
+			]
+		},
+		{
+			"name": "5408474",
+			"children": [
+				2
+			]
+		},
+		{
+			"name": "bone_0",
+			"translation": [
+				-0.028630640357732773,
+				3.5586068630218506,
+				-1.3363804817199707
+			]
+		},
+		{
+			"name": "5408474_Geoset_0_0",
+			"mesh": 0,
+			"skin": 0
+		},
+		{
+			"name": "5408474_Geoset_1_0",
+			"mesh": 1,
+			"skin": 0
+		}
+	],
+	"scenes": [
+		{
+			"name": "5408474_Scene",
+			"nodes": [
+				0
+			]
+		}
+	],
+	"buffers": [
+		{
+			"byteLength": 39733,
+			"uri": "5408474.bin"
+		}
+	],
+	"bufferViews": [
+		{
+			"buffer": 0,
+			"byteLength": 9816,
+			"byteOffset": 0,
+			"target": 34962
+		},
+		{
+			"buffer": 0,
+			"byteLength": 9816,
+			"byteOffset": 9816,
+			"target": 34962
+		},
+		{
+			"buffer": 0,
+			"byteLength": 3272,
+			"byteOffset": 19632,
+			"target": 34962
+		},
+		{
+			"buffer": 0,
+			"byteLength": 3272,
+			"byteOffset": 22904,
+			"target": 34962
+		},
+		{
+			"buffer": 0,
+			"byteLength": 64,
+			"byteOffset": 26176
+		},
+		{
+			"buffer": 0,
+			"byteLength": 6544,
+			"byteOffset": 26240,
+			"target": 34962
+		},
+		{
+			"buffer": 0,
+			"byteLength": 6544,
+			"byteOffset": 32784,
+			"target": 34962
+		},
+		{
+			"buffer": 0,
+			"byteLength": 396,
+			"byteOffset": 39328,
+			"target": 34963
+		},
+		{
+			"buffer": 0,
+			"byteLength": 9,
+			"byteOffset": 39724,
+			"target": 34963
+		}
+	],
+	"accessors": [
+		{
+			"name": "POSITION",
+			"bufferView": 0,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 818,
+			"type": "VEC3",
+			"min": [
+				-1.4127767086029053,
+				-0.006000413093715906,
+				-2.6199116706848145
+			],
+			"max": [
+				1.2477105855941772,
+				6.910616874694824,
+				1.6680325269699097
+			]
+		},
+		{
+			"name": "NORMAL",
+			"bufferView": 1,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 818,
+			"type": "VEC3",
+			"min": [
+				-1,
+				-1,
+				-0.986153781414032
+			],
+			"max": [
+				1,
+				0.9998216032981873,
+				0.99855637550354
+			]
+		},
+		{
+			"name": "JOINTS_0",
+			"byteOffset": 0,
+			"componentType": 5121,
+			"count": 818,
+			"type": "VEC4",
+			"bufferView": 2,
+			"min": [
+				0,
+				0,
+				0,
+				0
+			],
+			"max": [
+				0,
+				0,
+				0,
+				0
+			]
+		},
+		{
+			"name": "WEIGHTS_0",
+			"byteOffset": 0,
+			"componentType": 5121,
+			"count": 818,
+			"normalized": true,
+			"type": "VEC4",
+			"bufferView": 3,
+			"min": [
+				255,
+				0,
+				0,
+				0
+			],
+			"max": [
+				255,
+				0,
+				0,
+				0
+			]
+		},
+		{
+			"name": "INV_BIND_MATRICES",
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 1,
+			"type": "MAT4",
+			"bufferView": 4,
+			"min": [
+				1,
+				0,
+				0,
+				0,
+				0,
+				1,
+				0,
+				0,
+				0,
+				0,
+				1,
+				0,
+				0.028630640357732773,
+				-3.5586068630218506,
+				1.3363804817199707,
+				1
+			],
+			"max": [
+				1,
+				0,
+				0,
+				0,
+				0,
+				1,
+				0,
+				0,
+				0,
+				0,
+				1,
+				0,
+				0.028630640357732773,
+				-3.5586068630218506,
+				1.3363804817199707,
+				1
+			]
+		},
+		{
+			"name": "TEXCOORD_0",
+			"bufferView": 5,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 818,
+			"type": "VEC2",
+			"min": [
+				0.012394878081977367,
+				0.010875940322875977
+			],
+			"max": [
+				0.9874783754348755,
+				0.9980000257492065
+			]
+		},
+		{
+			"name": "TEXCOORD_1",
+			"bufferView": 6,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 818,
+			"type": "VEC2",
+			"min": [
+				0,
+				0
+			],
+			"max": [
+				0,
+				0
+			]
+		},
+		{
+			"bufferView": 7,
+			"byteOffset": 0,
+			"componentType": 5121,
+			"count": 396,
+			"type": "SCALAR"
+		},
+		{
+			"bufferView": 8,
+			"byteOffset": 0,
+			"componentType": 5121,
+			"count": 9,
+			"type": "SCALAR"
+		}
+	],
+	"meshes": [
+		{
+			"primitives": [
+				{
+					"attributes": {
+						"POSITION": 0,
+						"NORMAL": 1,
+						"JOINTS_0": 2,
+						"WEIGHTS_0": 3,
+						"TEXCOORD_0": 5,
+						"TEXCOORD_1": 6
+					},
+					"indices": 7,
+					"mode": 4
+				}
+			]
+		},
+		{
+			"primitives": [
+				{
+					"attributes": {
+						"POSITION": 0,
+						"NORMAL": 1,
+						"JOINTS_0": 2,
+						"WEIGHTS_0": 3,
+						"TEXCOORD_0": 5,
+						"TEXCOORD_1": 6
+					},
+					"indices": 8,
+					"mode": 4
+				}
+			]
+		}
+	],
+	"scene": 0,
+	"skins": [
+		{
+			"name": "5408474_Armature",
+			"joints": [
+				2
+			],
+			"inverseBindMatrices": 4,
+			"skeleton": 0
+		}
+	]
+}
