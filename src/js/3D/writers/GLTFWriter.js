@@ -86,6 +86,7 @@ class GLTFWriter {
 		this.textures = new Map();
 		this.texture_buffers = new Map();
 		this.meshes = [];
+		this.materialMetadata = new Map(); // Map<matName, {blendingMode, flags}>
 	}
 
 	/**
@@ -94,6 +95,15 @@ class GLTFWriter {
 	 */
 	setTextureMap(textures) {
 		this.textures = textures;
+	}
+
+	/**
+	 * Set material metadata (blendingMode, flags) for a material.
+	 * @param {string} matName Material name
+	 * @param {Object} metadata Material metadata with blendingMode and flags
+	 */
+	setMaterialMetadata(matName, metadata) {
+		this.materialMetadata.set(matName, metadata);
 	}
 
 	/**
@@ -869,7 +879,9 @@ class GLTFWriter {
 			}
 
 			root.textures.push({ source: imageIndex });
-			root.materials.push({
+			
+			// Create material with default properties
+			const material = {
 				name: path.basename(texFile.matName, path.extname(texFile.matName)),
 				emissiveFactor: [0, 0, 0],
 				pbrMetallicRoughness: {
@@ -878,7 +890,28 @@ class GLTFWriter {
 					},
 					metallicFactor: 0
 				}
-			});
+			};
+			
+			// Apply material metadata if available (for transparency/alpha blending)
+			const metadata = this.materialMetadata.get(texFile.matName);
+			if (metadata && metadata.blendingMode !== undefined) {
+				// Blending mode mapping based on Blender importer:
+				// 2, 4 -> BLEND (transparent blending)
+				// 1, 5 -> MASK (alpha cutoff)
+				// others -> OPAQUE
+				if (metadata.blendingMode === 2 || metadata.blendingMode === 4) {
+					material.alphaMode = 'BLEND';
+					material.doubleSided = true; // Transparent materials often need double-sided rendering
+				} else if (metadata.blendingMode === 1 || metadata.blendingMode === 5) {
+					material.alphaMode = 'MASK';
+					material.alphaCutoff = 0.5; // Default alpha cutoff
+					material.doubleSided = true;
+				} else {
+					material.alphaMode = 'OPAQUE';
+				}
+			}
+			
+			root.materials.push(material);
 
 			materialMap.set(texFile.matName, materialIndex);
 		}

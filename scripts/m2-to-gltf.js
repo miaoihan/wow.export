@@ -8,8 +8,9 @@
 const fs = require('fs');
 const path = require('path');
 
-// Global variable to store M2 directory context
+// Global variable to store M2 directory context and context type
 let currentM2Directory = null;
+let currentFileContext = 'auto'; // 'auto', 'skin', 'texture'
 
 // Mock listfile module BEFORE any other requires
 const Module = require('module');
@@ -109,11 +110,13 @@ Module.prototype.require = function(...args) {
 								// 1. Exact match: {fileDataID}.blp
 								let matchedBlp = blpFiles.find(f => f === `${fileDataIDStr}.blp`);
 								
-								// 2. Starts with fileDataID: {fileDataID}_xxx.blp
+								// 2. Starts with fileDataID: {fileDataID}_xxx.blp or {fileDataID}00.blp
 								if (!matchedBlp) {
 									matchedBlp = blpFiles.find(f => {
 										const name = path.basename(f, '.blp');
-										return name.startsWith(fileDataIDStr + '_') || name === fileDataIDStr;
+										return name.startsWith(fileDataIDStr + '_') || 
+										       name.startsWith(fileDataIDStr + '00') ||
+										       name === fileDataIDStr;
 									});
 								}
 								
@@ -137,34 +140,49 @@ Module.prototype.require = function(...args) {
 							// Ignore errors when searching for BLP files
 						}
 						
-						// Then try to find skin files
-						const BufferWrapper = require('../src/js/buffer');
-						const possibleSkinPaths = [
-							path.join(m2Dir, `${fileDataIDStr}.skin`),
-							path.join(m2Dir, `${fileDataIDStr}_00.skin`),
-							path.join(m2Dir, `${m2Basename}_${fileDataIDStr}.skin`),
-							path.join(m2Dir, `${m2Basename}.skin`),
-							path.join(m2Dir, `${m2Basename}_00.skin`),
-							path.join(m2Dir, `${m2Basename}_lod01.skin`),
-							path.join(m2Dir, `${m2Basename}_lod02.skin`),
-							path.join(m2Dir, `${m2Basename}_lod03.skin`)
-						];
-						
-						for (const possiblePath of possibleSkinPaths) {
-							if (fs.existsSync(possiblePath)) {
-								console.log(`  Found file: ${path.basename(possiblePath)}`);
-								const fileData = await fs.promises.readFile(possiblePath);
-								return BufferWrapper.from(fileData);
+						// Then try to find skin files (only if context is 'skin' or 'auto')
+						// Skip skin lookup if explicitly looking for textures
+						if (currentFileContext === 'skin' || (currentFileContext === 'auto' && fileDataID < 100000000)) {
+							const BufferWrapper = require('../src/js/buffer');
+							const m2BasenameNum = parseInt(m2Basename);
+							const isLikelySkinRequest = (
+								fileDataID === m2BasenameNum ||
+								fileDataID === m2BasenameNum * 100 ||
+								fileDataID.toString().startsWith(m2Basename) ||
+								(fileDataID > 1000000 && fileDataID < 100000000)
+							);
+							
+							if (isLikelySkinRequest) {
+								const possibleSkinPaths = [
+									path.join(m2Dir, `${fileDataIDStr}.skin`),
+									path.join(m2Dir, `${fileDataIDStr}_00.skin`),      // With underscore: 5408474_00.skin
+									path.join(m2Dir, `${fileDataIDStr}00.skin`),       // Without underscore: 540847400.skin
+									path.join(m2Dir, `${m2Basename}_${fileDataIDStr}.skin`),
+									path.join(m2Dir, `${m2Basename}.skin`),
+									path.join(m2Dir, `${m2Basename}_00.skin`),
+									path.join(m2Dir, `${m2Basename}00.skin`),         // Without underscore variant
+									path.join(m2Dir, `${m2Basename}_lod01.skin`),
+									path.join(m2Dir, `${m2Basename}_lod02.skin`),
+									path.join(m2Dir, `${m2Basename}_lod03.skin`)
+								];
+								
+								for (const possiblePath of possibleSkinPaths) {
+									if (fs.existsSync(possiblePath)) {
+										console.log(`  Found file: ${path.basename(possiblePath)}`);
+										const fileData = await fs.promises.readFile(possiblePath);
+										return BufferWrapper.from(fileData);
+									}
+								}
+								
+								// Fallback: try any available skin file
+								const skinFiles = fs.readdirSync(m2Dir).filter(f => f.endsWith('.skin'));
+								if (skinFiles.length > 0) {
+									console.log(`  ⚠️  Warning: File ${fileDataIDStr} not found, using fallback: ${skinFiles[0]}`);
+									const fallbackPath = path.join(m2Dir, skinFiles[0]);
+									const fileData = await fs.promises.readFile(fallbackPath);
+									return BufferWrapper.from(fileData);
+								}
 							}
-						}
-						
-						// Fallback: try any available skin file
-						const skinFiles = fs.readdirSync(m2Dir).filter(f => f.endsWith('.skin'));
-						if (skinFiles.length > 0 && fileDataID > 1000000) {
-							console.log(`  ⚠️  Warning: File ${fileDataIDStr} not found, using fallback: ${skinFiles[0]}`);
-							const fallbackPath = path.join(m2Dir, skinFiles[0]);
-							const fileData = await fs.promises.readFile(fallbackPath);
-							return BufferWrapper.from(fileData);
 						}
 						
 						// If we get here, file not found
@@ -304,8 +322,9 @@ async function convertM2ToGLTF(inputPath, outputPath, format = 'gltf', options =
 		throw new Error(`Input file not found: ${inputPath}`);
 	}
 
-	// Set M2 directory for CASC mock
+	// Set M2 directory and context for CASC mock
 	currentM2Directory = inputPath;
+	currentFileContext = 'skin'; // Set context to 'skin' when loading skin files
 
 	// Read M2 file
 	const m2Data = await fs.promises.readFile(inputPath);
@@ -317,17 +336,26 @@ async function convertM2ToGLTF(inputPath, outputPath, format = 'gltf', options =
 	await m2Loader.load();
 
 	console.log(`Model loaded: ${m2Loader.name || 'Unknown'}`);
-	console.log(`Vertices: ${m2Loader.vertices.length / 3}`);
-	console.log(`Bones: ${m2Loader.bones.length}`);
-	console.log(`Textures: ${m2Loader.textures.length}`);
-	console.log(`Animations: ${m2Loader.animations.length}`);
+		console.log(`Vertices: ${m2Loader.vertices.length / 3}`);
+		console.log(`Bones: ${m2Loader.bones.length}`);
+		console.log(`Textures: ${m2Loader.textures.length}`);
+		console.log(`Animations: ${m2Loader.animations.length}`);
+		console.log(`Available skins: ${m2Loader.getSkinList().length}`);
 
-	// Load first skin
-	console.log('Loading skin data...');
+	// Load skin (with option to select which skin/index)
+	const skinIndex = options.skinIndex !== undefined ? options.skinIndex : 0;
+	console.log(`Loading skin data (index ${skinIndex})...`);
 	let skin;
 	try {
-		skin = await m2Loader.getSkin(0);
+		const skinList = m2Loader.getSkinList();
+		if (skinIndex >= skinList.length) {
+			console.log(`  ⚠️  Warning: Skin index ${skinIndex} not available, using index 0`);
+			skin = await m2Loader.getSkin(0);
+		} else {
+			skin = await m2Loader.getSkin(skinIndex);
+		}
 		console.log(`Submeshes: ${skin.subMeshes.length}`);
+		console.log(`Texture units: ${skin.textureUnits.length}`);
 	} catch (e) {
 		console.error('Failed to load skin:', e);
 		throw e;
@@ -368,6 +396,7 @@ async function convertM2ToGLTF(inputPath, outputPath, format = 'gltf', options =
 	
 	if (options.exportTextures !== false && m2Loader.textures.length > 0) {
 		console.log('Exporting textures...');
+		currentFileContext = 'texture'; // Set context to 'texture' when exporting textures
 		const textureResult = await exportTextures(m2Loader, outputDir, format === 'glb', options);
 		textureMap = textureResult.validTextures;
 		textureBuffers = textureResult.texture_buffers;
@@ -375,6 +404,7 @@ async function convertM2ToGLTF(inputPath, outputPath, format = 'gltf', options =
 		if (format === 'glb' && textureBuffers.size > 0) {
 			gltf.setTextureBuffers(textureBuffers);
 		}
+		currentFileContext = 'skin'; // Reset context back to 'skin' after texture export
 	}
 
 	// Set animations (if requested)
@@ -391,8 +421,19 @@ async function convertM2ToGLTF(inputPath, outputPath, format = 'gltf', options =
 
 	// Export meshes
 	console.log('Processing meshes...');
+	let exportedMeshCount = 0;
+	let skippedMeshCount = 0;
+	
 	for (let mI = 0, mC = skin.subMeshes.length; mI < mC; mI++) {
 		const mesh = skin.subMeshes[mI];
+		
+		// Skip empty meshes
+		if (mesh.triangleCount === 0) {
+			console.log(`  Mesh ${mI}: Skipping (empty mesh)`);
+			skippedMeshCount++;
+			continue;
+		}
+		
 		const indices = new Array(mesh.triangleCount);
 		
 		for (let vI = 0; vI < mesh.triangleCount; vI++) {
@@ -400,31 +441,63 @@ async function convertM2ToGLTF(inputPath, outputPath, format = 'gltf', options =
 		}
 
 		// Get texture for this mesh (if any)
+		// A mesh can have multiple texture units, find all of them
+		const texUnits = skin.textureUnits.filter(tex => tex.skinSectionIndex === mI);
 		let texture = null;
-		const texUnit = skin.textureUnits.find(tex => tex.skinSectionIndex === mI);
-		if (texUnit && m2Loader.textureCombos) {
+		let matName = undefined;
+		let materialInfo = null;
+		
+		if (texUnits.length > 0 && m2Loader.textureCombos) {
+			// Use the first texture unit found
+			const texUnit = texUnits[0];
 			const textureIndex = m2Loader.textureCombos[texUnit.textureComboIndex];
 			texture = m2Loader.textures[textureIndex];
+			
+			if (texture && texture.fileDataID) {
+				if (textureMap.has(texture.fileDataID)) {
+					matName = textureMap.get(texture.fileDataID).matName;
+					console.log(`  Mesh ${mI} (submeshID: ${mesh.submeshID}): Using texture ${texture.fileDataID}`);
+					
+					// Get material info for transparency support
+					if (texUnit.materialIndex !== undefined && m2Loader.materials && m2Loader.materials.length > 0) {
+						const materialIndex = texUnit.materialIndex;
+						if (materialIndex >= 0 && materialIndex < m2Loader.materials.length) {
+							materialInfo = m2Loader.materials[materialIndex];
+							// Set material metadata for transparency
+							gltf.setMaterialMetadata(matName, {
+								blendingMode: materialInfo.blendingMode,
+								flags: materialInfo.flags
+							});
+							
+							// Log transparency info
+							if (materialInfo.blendingMode === 2 || materialInfo.blendingMode === 4) {
+								console.log(`    → Material has BLEND transparency (blendingMode: ${materialInfo.blendingMode})`);
+							} else if (materialInfo.blendingMode === 1 || materialInfo.blendingMode === 5) {
+								console.log(`    → Material has MASK transparency (blendingMode: ${materialInfo.blendingMode})`);
+							}
+						}
+					}
+				} else {
+					console.log(`  ⚠️  Mesh ${mI} (submeshID: ${mesh.submeshID}): Texture ${texture.fileDataID} not in texture map`);
+				}
+			} else {
+				console.log(`  Mesh ${mI} (submeshID: ${mesh.submeshID}): No texture fileDataID found`);
+			}
+		} else {
+			console.log(`  Mesh ${mI} (submeshID: ${mesh.submeshID}): No texture units found`);
 		}
 
 		// Generate mesh name
 		const meshName = options.meshPrefix 
 			? `${options.meshPrefix}_${mI}_${mesh.submeshID}`
 			: `Geoset_${mI}_${mesh.submeshID}`;
-
-			// Find material name for this mesh
-			let matName = undefined;
-			if (texture && texture.fileDataID) {
-				if (textureMap.has(texture.fileDataID)) {
-					matName = textureMap.get(texture.fileDataID).matName;
-				} else {
-					matName = `mat_${texture.fileDataID}`;
-				}
-			}
 			
-			// Add mesh to glTF
-			gltf.addMesh(meshName, indices, matName);
-		}
+		// Add mesh to glTF (even if no texture, so geometry is preserved)
+		gltf.addMesh(meshName, indices, matName);
+		exportedMeshCount++;
+	}
+	
+	console.log(`Exported ${exportedMeshCount} meshes, skipped ${skippedMeshCount} empty meshes`);
 
 	// Write output file
 	console.log(`Writing ${format.toUpperCase()} file...`);
@@ -435,10 +508,11 @@ async function convertM2ToGLTF(inputPath, outputPath, format = 'gltf', options =
 		outputPath,
 		format,
 		vertexCount: m2Loader.vertices.length / 3,
-		meshCount: skin.subMeshes.length,
+		meshCount: exportedMeshCount,
 		boneCount: m2Loader.bones.length,
 		textureCount: textureMap.size,
-		animationCount: m2Loader.animations.length
+		animationCount: m2Loader.animations.length,
+		availableSkins: m2Loader.getSkinList().length
 	};
 }
 
@@ -541,7 +615,7 @@ Examples:
 		console.log('\n--- Conversion Summary ---');
 		console.log(`Output: ${result.outputPath}`);
 		console.log(`Format: ${result.format.toUpperCase()}`);
-		console.log(`Vertices: ${result.vertexCount}`);
+			console.log(`Vertices: ${result.vertexCount}`);
 		console.log(`Meshes: ${result.meshCount}`);
 		console.log(`Bones: ${result.boneCount}`);
 		if (options.exportTextures && result.textureCount) {
@@ -549,6 +623,9 @@ Examples:
 		}
 		if (options.exportAnimations) {
 			console.log(`Animations: ${result.animationCount}`);
+		}
+		if (result.availableSkins > 1) {
+			console.log(`\n💡 Tip: Model has ${result.availableSkins} skins. Use --skin-index <n> to export different skin.`);
 		}
 	} catch (error) {
 		console.error('Error during conversion:', error.message);
